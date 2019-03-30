@@ -76,6 +76,7 @@ class TokenizerSpec extends FunSpec with Matchers with Checkers {
         '#',
         '@',
         '?',
+        'å',
       ))
       val invalidSymbols = Gen.nonEmptyListOf(invalidSymbol)
 

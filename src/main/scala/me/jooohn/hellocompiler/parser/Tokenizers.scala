@@ -1,12 +1,13 @@
 package me.jooohn.hellocompiler.parser
 
 import cats.FlatMap
-import cats.data.{NonEmptyVector, StateT}
+import cats.data.StateT
 import cats.instances.all._
 import cats.syntax.all._
 import me.jooohn.hellocompiler.ErrorOr
 
 object Tokenizers {
+  import Parser.ParserOps
   import StateT.pure
   import Token._
 
@@ -75,29 +76,10 @@ object Tokenizers {
     intLit | identifier | openParen | closeParen
 
   val default: Tokenizer =
-    F.tailRecM(Vector.empty[Token]) { as =>
-      space.repeat >> (
-        one.map(t => (as :+ t).asLeft[Vector[Token]]) |
-          eof.map(e => (as :+ e).asRight)
-      )
-    } map (_.toList)
-
-  implicit class ParserOps[A](parser: CharParser[A]) {
-
-    def |(that: CharParser[A]): CharParser[A] = parser.orElse(that)
-
-    def repeat: CharParser[Vector[A]] =
-      F.tailRecM(Vector.empty[A]) { as =>
-        (parser map (a => (as :+ a).asLeft[Vector[A]])) | pure(as.asRight)
-      }
-
-    def many: CharParser[NonEmptyVector[A]] =
-      for {
-        c <- parser
-        cs <- repeat
-      } yield NonEmptyVector(c, cs)
-
-  }
+    for {
+      tokens <- (space.repeat >> one).repeat
+      e <- space.repeat >> eof
+    } yield (tokens :+ e).toList
 
   implicit class CharOps(char: Char) {
 
