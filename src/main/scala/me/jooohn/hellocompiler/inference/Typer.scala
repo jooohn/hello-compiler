@@ -1,7 +1,7 @@
 package me.jooohn.hellocompiler.inference
 
 import cats.syntax.all._
-import me.jooohn.hellocompiler.Exp
+import me.jooohn.hellocompiler.{CompileError, ErrorOr, Exp}
 import me.jooohn.hellocompiler.Exp._
 
 private class Typer { self =>
@@ -55,7 +55,7 @@ private class Typer { self =>
           sub3 <- unify(t1, u1, sub2)
         } yield sub3
       case (TypeCons(k1, ts), TypeCons(k2, us)) if k1 == k2 =>
-        (ts zip us).foldLeft(sub.asRight[TypeError]) { (s, tu) =>
+        (ts zip us).foldLeft(sub.asRight[CompileError]) { (s, tu) =>
           s.flatMap(unify(tu._1, tu._2, _))
         }
       case _ => Left(TypeError(s"cannot unify ${sub(t)} with ${sub(u)}"))
@@ -127,4 +127,5 @@ private class Typer { self =>
 object Typer {
 
   def typeOf(exp: Exp): ErrorOr[Type] = new Typer().typeOf(exp)
+
 }

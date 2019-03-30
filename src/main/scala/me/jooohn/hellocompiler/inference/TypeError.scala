@@ -1,3 +1,5 @@
 package me.jooohn.hellocompiler.inference
 
-case class TypeError(message: String)
+import me.jooohn.hellocompiler.CompileError
+
+case class TypeError(message: String) extends CompileError(message)
