@@ -1,15 +1,15 @@
 package me.jooohn.hellocompiler.inference
 
 import cats.syntax.all._
-import me.jooohn.hellocompiler.{CompileError, ErrorOr, Exp}
-import me.jooohn.hellocompiler.Exp._
+import me.jooohn.hellocompiler.{CompileError, ErrorOr, AST}
+import me.jooohn.hellocompiler.AST._
 
 private class Typer { self =>
   import Type._
 
   type Env = List[(String, TypeScheme)]
 
-  def typeOf(e: Exp): ErrorOr[Type] = predef.typeOf(e)
+  def typeOf(e: AST): ErrorOr[Type] = predef.typeOf(e)
 
   val predef: Env = {
 
@@ -85,9 +85,9 @@ private class Typer { self =>
       t,
     )
 
-    def tp(e: Exp, t: Type, sub: Substitute): ErrorOr[Substitute] = {
+    def tp(e: AST, t: Type, sub: Substitute): ErrorOr[Substitute] = {
       e match {
-        case Var(x) =>
+        case Ident(x) =>
           for {
             scheme <- lookup(x).toRight(TypeError(s"undefined: $x"))
             sub2 <- unify(scheme.newInstance, t, sub)
@@ -116,7 +116,7 @@ private class Typer { self =>
       }
     }
 
-    def typeOf(e: Exp): ErrorOr[Type] = {
+    def typeOf(e: AST): ErrorOr[Type] = {
       val a = newTypeVar
       tp(e, a, Substitute.empty).map(_(a))
     }
@@ -126,6 +126,6 @@ private class Typer { self =>
 }
 object Typer {
 
-  def typeOf(exp: Exp): ErrorOr[Type] = new Typer().typeOf(exp)
+  def typeOf(exp: AST): ErrorOr[Type] = new Typer().typeOf(exp)
 
 }

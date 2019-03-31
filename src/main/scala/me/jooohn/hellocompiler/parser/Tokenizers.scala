@@ -7,7 +7,7 @@ import cats.syntax.all._
 import me.jooohn.hellocompiler.ErrorOr
 
 object Tokenizers {
-  import Parser.ParserOps
+  import Parser._
   import StateT.pure
   import Token._
 
@@ -16,15 +16,6 @@ object Tokenizers {
   final type Tokenizer = CharParser[List[Token]]
 
   val F: FlatMap[CharParser] = FlatMap[CharParser]
-
-  def parse[A](f: PartialFunction[List[Char], (List[Char], A)]): CharParser[A] =
-    StateT[ErrorOr, List[Char], A] { chars =>
-      if (f.isDefinedAt(chars)) f(chars).asRight
-      else
-        TokenizeError(
-          s"Failed to parse ${chars.take(10)}${if (chars.length > 10) "..."
-          else ""}").asLeft
-    }
 
   def char(f: Char => Boolean): CharParser[Char] =
     parse { case c :: rest if f(c) => (rest, c) }
@@ -47,8 +38,8 @@ object Tokenizers {
   val reservedIdentifiers: Map[String, Token] = Map(
     "let" -> Let,
     "in" -> In,
-    "true" -> True,
-    "false" -> False,
+    "true" -> TrueLit,
+    "false" -> FalseLit,
     "=" -> Equals,
     ":" -> Colon,
   )

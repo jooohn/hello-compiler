@@ -3,7 +3,7 @@ package me.jooohn.hellocompiler.inference
 import org.scalatest.{FunSpec, Matchers}
 
 class TyperSpec extends FunSpec with Matchers {
-  import me.jooohn.hellocompiler.Exp._
+  import me.jooohn.hellocompiler.AST._
 
   describe("typeOf") {
 
@@ -12,19 +12,19 @@ class TyperSpec extends FunSpec with Matchers {
         App(
           Lam(
             "x",
-            Var("x"),
+            Ident("x"),
           ),
           App(
             App(
               App(
-                Var("if"),
-                Var("true"),
+                Ident("if"),
+                Ident("true"),
               ),
-              Var("zero"),
+              Ident("zero"),
             ),
             App(
-              Var("succ"),
-              Var("zero"),
+              Ident("succ"),
+              Ident("zero"),
             )
           ),
         )
@@ -33,7 +33,7 @@ class TyperSpec extends FunSpec with Matchers {
     }
 
     it("should not inferable") {
-      Typer.typeOf(Var("undefined")) should be(Left(TypeError("undefined: undefined")))
+      Typer.typeOf(Ident("undefined")) should be(Left(TypeError("undefined: undefined")))
     }
 
   }

@@ -52,8 +52,8 @@ class TokenizerSpec extends FunSpec with Matchers with Checkers {
              Let :: Ident("lower") :: Equals :: IntLit(234) :: In :: Nil,
              Let :: Ident("Upper") :: Equals :: IntLit(567) :: In :: Nil,
              Let :: Ident("alphaNum999") :: Equals :: IntLit(890) :: In :: Nil,
-             Let :: Ident("bool1") :: Colon :: Ident("Bool") :: Equals :: True :: In :: Nil,
-             Let :: Ident("bool2") :: Equals :: False :: In :: Nil,
+             Let :: Ident("bool1") :: Colon :: Ident("Bool") :: Equals :: TrueLit :: In :: Nil,
+             Let :: Ident("bool2") :: Equals :: FalseLit :: In :: Nil,
              Let :: Ident("bool") :: Equals :: Ident("bool1") :: Ident("&&") :: Ident(
                "bool2") :: In :: Nil,
              OpenParen :: Ident("c") :: Ident("+") :: Ident("lower") :: Ident("-") :: Ident("Upper") :: Ident("*") :: Ident("alphaNum999") :: Ident("/") :: IntLit(12345) :: CloseParen :: Ident("<=") :: IntLit(1) :: Nil,
