@@ -52,21 +52,20 @@ object Parsers {
       anyIdentIf(_.headOption.exists(Set('+', '-'))),
     ) :+ anyIdent
     precedence.foldLeft(prefixExpr | term) { (priorParser, operator) =>
-      priorParser flatMap { prior =>
-        val app: TokenParser[Expr] =
-          for {
-            op <- operator
-            arg <- priorParser
-          } yield
+      def current: TokenParser[Expr] = priorParser flatMap { prior =>
+        (for {
+          op <- operator
+          arg <- current
+        } yield
+          AST.App(
             AST.App(
-              AST.App(
-                AST.Ident(op.value),
-                prior
-              ),
-              arg,
-            )
-        app | pure(prior)
+              AST.Ident(op.value),
+              prior
+            ),
+            arg,
+          )).widen[Expr] | pure(prior)
       }
+      current
     }
   }
 

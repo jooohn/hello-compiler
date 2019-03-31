@@ -88,18 +88,18 @@ class ParserSpec extends FunSpec with Matchers with Checkers {
             Nil,
             App(
               App(
-                Ident("-"),
+                Ident("+"),
                 App(
                   App(
-                    Ident("+"),
-                    App(
-                      App(
-                        Ident("*"),
-                        Ident("a"),
-                      ),
-                      Ident("b"),
-                    ),
+                    Ident("*"),
+                    Ident("a"),
                   ),
+                  Ident("b"),
+                ),
+              ),
+              App(
+                App(
+                  Ident("-"),
                   App(
                     App(
                       Ident("/"),
@@ -107,17 +107,17 @@ class ParserSpec extends FunSpec with Matchers with Checkers {
                     ),
                     Ident("d"),
                   )
-                )
-              ),
-              App(
-                App(
-                  Ident("%"),
-                  Ident("e"),
                 ),
-                Ident("f"),
+                App(
+                  App(
+                    Ident("%"),
+                    Ident("e"),
+                  ),
+                  Ident("f"),
+                ),
               ),
-            ),
-          ),
+            )
+          )
         )
       )
     }
