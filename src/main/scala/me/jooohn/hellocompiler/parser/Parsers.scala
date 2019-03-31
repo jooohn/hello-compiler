@@ -1,16 +1,13 @@
 package me.jooohn.hellocompiler.parser
 
-import me.jooohn.hellocompiler.{AST, Exp}
-import me.jooohn.hellocompiler.parser.Token.Ident
-
-import scala.reflect.runtime.universe.TypeTag
 import cats.instances.all._
 import cats.syntax.all._
+import me.jooohn.hellocompiler.{AST, Expr}
 
 object Parsers {
-  import cats.data.StateT.pure
   import Parser._
   import Token._
+  import cats.data.StateT.pure
 
   type TokenParser[A] = Parser[List[Token], A]
 
@@ -20,7 +17,10 @@ object Parsers {
   val anyIdent: TokenParser[Ident] = parse {
     case (ident @ Ident(_)) :: rest => (rest, ident)
   }
-  def exactIdent(value: String): TokenParser[Ident] = exact(Ident(value))
+
+  def anyIdentIf(f: String => Boolean): TokenParser[Ident] = parse {
+    case (ident @ Ident(value)) :: rest if f(value) => (rest, ident)
+  }
 
   val anyIntLit: TokenParser[IntLit] = parse {
     case (intLit @ IntLit(_)) :: rest => (rest, intLit)
@@ -39,70 +39,74 @@ object Parsers {
 
   val default: TokenParser[AST] =
     for {
-      e <- exp
+      e <- expr
       _ <- eof
     } yield e
 
-  lazy val exp: TokenParser[Exp] =
-    letExp.widen[Exp] | app
+  lazy val expr: TokenParser[Expr] =
+    letExpr.widen[Expr] | app
 
-  lazy val app: TokenParser[Exp] = {
+  lazy val app: TokenParser[Expr] = {
     val precedence = List(
-      exactIdent("/") | exactIdent("*") | exactIdent("%"),
-      exactIdent("+") | exactIdent("-"),
+      anyIdentIf(_.headOption.exists(Set('*', '/', '%'))),
+      anyIdentIf(_.headOption.exists(Set('+', '-'))),
     ) :+ anyIdent
-    precedence.foldLeft(term) { (priorParser, operator) =>
+    precedence.foldLeft(prefixExpr | term) { (priorParser, operator) =>
       priorParser flatMap { prior =>
-        val app: TokenParser[Exp] =
+        val app: TokenParser[Expr] =
           for {
             op <- operator
             arg <- priorParser
-          } yield AST.App(
+          } yield
             AST.App(
-              AST.Ident(op.value),
-              prior
-            ),
-            arg,
-          )
+              AST.App(
+                AST.Ident(op.value),
+                prior
+              ),
+              arg,
+            )
         app | pure(prior)
       }
     }
   }
 
-  lazy val term: TokenParser[Exp] =
-    parenExp |
-      intExp.widen[Exp] |
-      trueExp.widen[Exp] |
-      falseExp.widen[Exp] |
-      identExp.widen[Exp]
+  lazy val prefixOperators: Set[String] = Set("+", "-", "!", "~")
+  lazy val prefixExpr: TokenParser[Expr] =
+    for {
+      prefix <- anyIdentIf(prefixOperators)
+      e <- term
+    } yield AST.App(AST.Ident(s"unary_${prefix.value}"), e)
 
-  lazy val identExp: TokenParser[AST.Ident] =
+  lazy val term: TokenParser[Expr] =
+    parenExpr | intExpr | trueExpr | falseExpr | identExpr
+
+  lazy val identExpr: TokenParser[Expr] =
     anyIdent map (ident => AST.Ident(ident.value))
 
-  lazy val letExp: TokenParser[AST.Let] =
+  lazy val letExpr: TokenParser[Expr] =
     for {
       _ <- let
       ident <- anyIdent
       _ <- equals
-      v <- exp
+      v <- expr
       _ <- in
-      e <- exp
+      e <- expr
     } yield AST.Let(ident.value, v, e)
 
-  lazy val parenExp: TokenParser[Exp] =
+  lazy val parenExpr: TokenParser[Expr] =
     for {
       _ <- openParen
-      e <- exp
+      e <- expr
       _ <- closeParen
     } yield e
 
-  lazy val intExp: TokenParser[AST.IntLit] =
+  lazy val intExpr: TokenParser[Expr] =
     anyIntLit map (int => AST.IntLit(int.value))
 
-  lazy val trueExp: TokenParser[AST.TrueLit.type] =
+  lazy val trueExpr: TokenParser[Expr] =
     trueLit map (_ => AST.TrueLit)
 
-  lazy val falseExp: TokenParser[AST.FalseLit.type] =
+  lazy val falseExpr: TokenParser[Expr] =
     falseLit map (_ => AST.FalseLit)
 
 }

@@ -1,7 +1,6 @@
 package me.jooohn.hellocompiler.parser
 
 import cats.instances.either._
-import cats.syntax.all._
 import me.jooohn.hellocompiler.AST
 import me.jooohn.hellocompiler.parser.Parsers.TokenParser
 import org.scalatest.prop.Checkers
@@ -119,6 +118,33 @@ class ParserSpec extends FunSpec with Matchers with Checkers {
               ),
             ),
           ),
+        )
+      )
+    }
+
+    it("parses prefix") {
+      val tokens = List(
+        Token.Ident("a"),
+        Token.Ident("-"),
+        Token.Ident("-"),
+        Token.Ident("b"),
+        Token.EOF,
+      )
+      parser.run(tokens) should be(
+        Right(
+          (
+            Nil,
+            App(
+              App(
+                Ident("-"),
+                Ident("a"),
+              ),
+              App(
+                Ident("unary_-"),
+                Ident("b"),
+              )
+            )
+          )
         )
       )
     }
