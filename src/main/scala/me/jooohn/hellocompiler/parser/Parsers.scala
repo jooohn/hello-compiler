@@ -1,5 +1,6 @@
 package me.jooohn.hellocompiler.parser
 
+import cats.FlatMap
 import cats.instances.all._
 import cats.syntax.all._
 import me.jooohn.hellocompiler.{AST, Expr}
@@ -54,19 +55,17 @@ object Parsers {
     precedence.foldLeft(prefixExpr | term)(infixExpr)
   }
 
-  def infixExpr(priorParser: TokenParser[Expr], operatorParser: TokenParser[AST.Ident]): TokenParser[Expr] =
-    priorParser flatMap { prior =>
-      (for {
-        op <- operatorParser
-        arg <- infixExpr(priorParser, operatorParser)
-      } yield
-        AST.App(
-          AST.App(
-            op,
-            prior
-          ),
-          arg,
-        )).widen[Expr] | pure(prior)
+  def infixExpr(priorParser: TokenParser[Expr],
+                operatorParser: TokenParser[AST.Ident]): TokenParser[Expr] =
+    FlatMap[TokenParser].tailRecM[Option[Expr], Expr](None) {
+      case None => priorParser map (_.some.asLeft)
+      case Some(acc) =>
+        val next =
+          for {
+            op <- operatorParser
+            current <- priorParser
+          } yield AST.App(AST.App(op, acc), current): Expr
+        next.map(_.some.asLeft[Expr]) | pure(acc.asRight)
     }
 
   lazy val prefixOperators: Set[String] = Set("+", "-", "!", "~")
@@ -110,7 +109,8 @@ object Parsers {
 
   implicit class IdentTokenParserOps(parser: TokenParser[Ident]) {
 
-    def asAST: TokenParser[AST.Ident] = parser map (ident => AST.Ident(ident.value))
+    def asAST: TokenParser[AST.Ident] =
+      parser map (ident => AST.Ident(ident.value))
 
   }
 

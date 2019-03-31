@@ -88,18 +88,18 @@ class ParserSpec extends FunSpec with Matchers with Checkers {
             Nil,
             App(
               App(
-                Ident("+"),
+                Ident("-"),
                 App(
                   App(
-                    Ident("*"),
-                    Ident("a"),
+                    Ident("+"),
+                    App(
+                      App(
+                        Ident("*"),
+                        Ident("a"),
+                      ),
+                      Ident("b"),
+                    ),
                   ),
-                  Ident("b"),
-                ),
-              ),
-              App(
-                App(
-                  Ident("-"),
                   App(
                     App(
                       Ident("/"),
@@ -108,13 +108,13 @@ class ParserSpec extends FunSpec with Matchers with Checkers {
                     Ident("d"),
                   )
                 ),
+              ),
+              App(
                 App(
-                  App(
-                    Ident("%"),
-                    Ident("e"),
-                  ),
-                  Ident("f"),
+                  Ident("%"),
+                  Ident("e"),
                 ),
+                Ident("f"),
               ),
             )
           )
@@ -147,6 +147,18 @@ class ParserSpec extends FunSpec with Matchers with Checkers {
           )
         )
       )
+    }
+
+    it("should not cause stack overflow") {
+      def double(tokens: Vector[Token]): Vector[Token] = tokens ++ tokens
+      def repeat(tokens: Vector[Token], times: Int): Vector[Token] =
+        if (times <= 0) tokens
+        else repeat(double(tokens), times - 1)
+      val tokens =
+        (repeat(Vector(Token.Ident("a"), Token.Ident("+")), 13) ++ Vector(
+          Token.Ident("a"),
+          Token.EOF)).toList
+      parser.run(tokens).isRight should be(true)
     }
 
   }
