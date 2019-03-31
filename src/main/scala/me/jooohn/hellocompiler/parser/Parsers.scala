@@ -48,26 +48,26 @@ object Parsers {
 
   lazy val app: TokenParser[Expr] = {
     val precedence = List(
-      anyIdentIf(_.headOption.exists(Set('*', '/', '%'))),
-      anyIdentIf(_.headOption.exists(Set('+', '-'))),
-    ) :+ anyIdent
-    precedence.foldLeft(prefixExpr | term) { (priorParser, operator) =>
-      def current: TokenParser[Expr] = priorParser flatMap { prior =>
-        (for {
-          op <- operator
-          arg <- current
-        } yield
-          AST.App(
-            AST.App(
-              AST.Ident(op.value),
-              prior
-            ),
-            arg,
-          )).widen[Expr] | pure(prior)
-      }
-      current
-    }
+      anyIdentIf(_.headOption.exists(Set('*', '/', '%'))).asAST,
+      anyIdentIf(_.headOption.exists(Set('+', '-'))).asAST,
+    ) :+ anyIdent.asAST
+    precedence.foldLeft(prefixExpr | term)(infixExpr)
   }
+
+  def infixExpr(priorParser: TokenParser[Expr], operatorParser: TokenParser[AST.Ident]): TokenParser[Expr] =
+    priorParser flatMap { prior =>
+      (for {
+        op <- operatorParser
+        arg <- infixExpr(priorParser, operatorParser)
+      } yield
+        AST.App(
+          AST.App(
+            op,
+            prior
+          ),
+          arg,
+        )).widen[Expr] | pure(prior)
+    }
 
   lazy val prefixOperators: Set[String] = Set("+", "-", "!", "~")
   lazy val prefixExpr: TokenParser[Expr] =
@@ -107,5 +107,11 @@ object Parsers {
 
   lazy val falseExpr: TokenParser[Expr] =
     falseLit map (_ => AST.FalseLit)
+
+  implicit class IdentTokenParserOps(parser: TokenParser[Ident]) {
+
+    def asAST: TokenParser[AST.Ident] = parser map (ident => AST.Ident(ident.value))
+
+  }
 
 }
