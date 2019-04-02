@@ -1,4 +1,4 @@
-package me.jooohn.hellocompiler
+package me.jooohn.hellocompiler.untyped
 
 sealed trait AST
 sealed trait Expr extends AST

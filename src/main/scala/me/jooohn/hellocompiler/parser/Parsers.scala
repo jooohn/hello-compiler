@@ -3,7 +3,8 @@ package me.jooohn.hellocompiler.parser
 import cats.FlatMap
 import cats.instances.all._
 import cats.syntax.all._
-import me.jooohn.hellocompiler.{AST, Expr}
+import me.jooohn.hellocompiler.Expr
+import me.jooohn.hellocompiler.untyped.{AST, Expr}
 
 object Parsers {
   import Parser._

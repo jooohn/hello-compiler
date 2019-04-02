@@ -1,8 +1,9 @@
 package me.jooohn.hellocompiler.inference
 
 import cats.syntax.all._
-import me.jooohn.hellocompiler.{CompileError, ErrorOr, AST}
-import me.jooohn.hellocompiler.AST._
+import me.jooohn.hellocompiler.untyped.AST
+import me.jooohn.hellocompiler.{CompileError, ErrorOr}
+import me.jooohn.hellocompiler.untyped.AST._
 
 private class Typer { self =>
   import Type._

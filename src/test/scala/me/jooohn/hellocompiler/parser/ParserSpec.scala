@@ -1,8 +1,8 @@
 package me.jooohn.hellocompiler.parser
 
 import cats.instances.either._
-import me.jooohn.hellocompiler.AST
 import me.jooohn.hellocompiler.parser.Parsers.TokenParser
+import me.jooohn.hellocompiler.untyped.AST
 import org.scalatest.prop.Checkers
 import org.scalatest.{FunSpec, Matchers}
 
@@ -149,16 +149,18 @@ class ParserSpec extends FunSpec with Matchers with Checkers {
       )
     }
 
-    it("should not cause stack overflow") {
-      def double(tokens: Vector[Token]): Vector[Token] = tokens ++ tokens
-      def repeat(tokens: Vector[Token], times: Int): Vector[Token] =
-        if (times <= 0) tokens
-        else repeat(double(tokens), times - 1)
-      val tokens =
-        (repeat(Vector(Token.Ident("a"), Token.Ident("+")), 13) ++ Vector(
-          Token.Ident("a"),
-          Token.EOF)).toList
-      parser.run(tokens).isRight should be(true)
+    describe("repetitive apply") {
+      it("should not cause stack overflow") {
+        def double(tokens: Vector[Token]): Vector[Token] = tokens ++ tokens
+        def repeat(tokens: Vector[Token], times: Int): Vector[Token] =
+          if (times <= 0) tokens
+          else repeat(double(tokens), times - 1)
+        val tokens =
+          (repeat(Vector(Token.Ident("a"), Token.Ident("+")), 13) ++ Vector(
+            Token.Ident("a"),
+            Token.EOF)).toList
+        parser.run(tokens).isRight should be(true)
+      }
     }
 
   }

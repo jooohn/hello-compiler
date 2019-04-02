@@ -3,7 +3,7 @@ package me.jooohn.hellocompiler.inference
 import org.scalatest.{FunSpec, Matchers}
 
 class TyperSpec extends FunSpec with Matchers {
-  import me.jooohn.hellocompiler.AST._
+  import me.jooohn.hellocompiler.untyped.AST._
 
   describe("typeOf") {
 
