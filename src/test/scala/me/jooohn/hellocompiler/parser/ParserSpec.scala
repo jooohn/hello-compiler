@@ -1,15 +1,15 @@
 package me.jooohn.hellocompiler.parser
 
 import cats.instances.either._
+import me.jooohn.hellocompiler.Untyped
 import me.jooohn.hellocompiler.parser.Parsers.TokenParser
-import me.jooohn.hellocompiler.untyped.AST
 import org.scalatest.prop.Checkers
 import org.scalatest.{FunSpec, Matchers}
 
 class ParserSpec extends FunSpec with Matchers with Checkers {
-  import AST._
+  import me.jooohn.hellocompiler.AST._
 
-  val parser: TokenParser[AST] = Parsers.default
+  val parser: TokenParser[Expr[Untyped]] = Parsers.default
 
   describe("default") {
 

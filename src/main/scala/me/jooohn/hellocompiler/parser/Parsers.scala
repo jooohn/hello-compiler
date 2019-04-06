@@ -3,13 +3,14 @@ package me.jooohn.hellocompiler.parser
 import cats.FlatMap
 import cats.instances.all._
 import cats.syntax.all._
-import me.jooohn.hellocompiler.Expr
-import me.jooohn.hellocompiler.untyped.{AST, Expr}
+import me.jooohn.hellocompiler.{AST, Untyped}
 
 object Parsers {
   import Parser._
   import Token._
   import cats.data.StateT.pure
+
+  private type Expr = AST.Expr[Untyped]
 
   type TokenParser[A] = Parser[List[Token], A]
 
@@ -39,7 +40,7 @@ object Parsers {
   val closeParen: TokenParser[CloseParen.type] = exact(CloseParen)
   val eof: TokenParser[EOF.type] = exact(EOF)
 
-  val default: TokenParser[AST] =
+  val default: TokenParser[Expr] =
     for {
       e <- expr
       _ <- eof
@@ -57,7 +58,7 @@ object Parsers {
   }
 
   def infixExpr(priorParser: TokenParser[Expr],
-                operatorParser: TokenParser[AST.Ident]): TokenParser[Expr] =
+                operatorParser: TokenParser[Expr]): TokenParser[Expr] =
     FlatMap[TokenParser].tailRecM[Option[Expr], Expr](None) {
       case None => priorParser map (_.some.asLeft)
       case Some(acc) =>
@@ -110,7 +111,7 @@ object Parsers {
 
   implicit class IdentTokenParserOps(parser: TokenParser[Ident]) {
 
-    def asAST: TokenParser[AST.Ident] =
+    def asAST: TokenParser[Expr] =
       parser map (ident => AST.Ident(ident.value))
 
   }

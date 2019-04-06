@@ -1,9 +1,9 @@
-package me.jooohn.hellocompiler.inference
+package me.jooohn.hellocompiler
 
 sealed trait Type {
   import Type._
 
-  def ->(that: Type): -> = Type.->(this, that)
+  def ->(that: Type): Type.-> = Type.->(this, that)
 
   def typeVars: List[TypeVar] = this match {
     case tv @ TypeVar(_) => List(tv)
@@ -24,6 +24,7 @@ object Type {
   case class TypeCons(k: String, ts: List[Type]) extends Type
 
   val int: TypeCons = TypeCons("Int", Nil)
-  val boolean: TypeCons = TypeCons("Boolean", Nil)
+  val bool: TypeCons = TypeCons("Bool", Nil)
+  def list(t: Type): TypeCons = TypeCons("List", t :: Nil)
 
 }

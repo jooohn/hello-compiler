@@ -1,37 +1,32 @@
 package me.jooohn.hellocompiler.inference
 
 import cats.syntax.all._
-import me.jooohn.hellocompiler.untyped.AST
-import me.jooohn.hellocompiler.{CompileError, ErrorOr}
-import me.jooohn.hellocompiler.untyped.AST._
+import me.jooohn.hellocompiler.AST._
+import me.jooohn.hellocompiler._
 
 private class Typer { self =>
   import Type._
 
   type Env = List[(String, TypeScheme)]
 
-  def typeOf(e: AST): ErrorOr[Type] = predef.typeOf(e)
+//  def typeOf(e: AST): ErrorOr[Type] = predef.typeOf(e)
+
+  def infer(expr: Expr[Untyped]): ErrorOr[Expr[Typed]] =
+    predef.infer(expr)
 
   val predef: Env = {
-
-    val booleanType = TypeCons("Boolean", Nil)
-    val intType = TypeCons("Int", Nil)
-    def listType(t: Type) = TypeCons("List", t :: Nil)
-
     def gen(t: Type): TypeScheme = (Nil: Env).gen(t)
     val a = newTypeVar
 
     List(
-      "true" -> gen(booleanType),
-      "false" -> gen(booleanType),
-      "if" -> gen(booleanType -> (a -> (a -> a))),
-      "zero" -> gen(intType),
-      "succ" -> gen(intType -> intType),
-      "nil" -> gen(listType(a)),
-      "cons" -> gen(a -> (listType(a) -> listType(a))),
-      "isEmpty" -> gen(listType(a) -> booleanType),
-      "head" -> gen(listType(a) -> a),
-      "tail" -> gen(listType(a) -> listType(a)),
+      "if" -> gen(bool -> (a -> (a -> a))),
+      "zero" -> gen(int),
+      "succ" -> gen(int -> int),
+      "nil" -> gen(list(a)),
+      "cons" -> gen(a -> (list(a) -> list(a))),
+      "isEmpty" -> gen(list(a) -> bool),
+      "head" -> gen(list(a) -> a),
+      "tail" -> gen(list(a) -> list(a)),
       "fix" -> gen((a -> a) -> a)
     )
   }
@@ -86,40 +81,73 @@ private class Typer { self =>
       t,
     )
 
-    def tp(e: AST, t: Type, sub: Substitute): ErrorOr[Substitute] = {
+    def tp(e: Expr[Typed], sub: Substitute): ErrorOr[Substitute] = {
       e match {
-        case Ident(x) =>
+        case Ident(x, _) =>
           for {
             scheme <- lookup(x).toRight(TypeError(s"undefined: $x"))
-            sub2 <- unify(scheme.newInstance, t, sub)
-          } yield sub2
+            sub1 <- unify(scheme.newInstance, e.tpe, sub)
+          } yield sub1
 
-        case Lam(x, exp) =>
-          val a, b = newTypeVar
-          for {
-            sub1 <- unify(t, a -> b, sub)
-            sub2 <- ((x, TypeScheme(Nil, a)) :: env).tp(exp, b, sub1)
-          } yield sub2
-
-        case App(e1, e2) =>
+        case Lam(x, exp, _) =>
           val a = newTypeVar
           for {
-            sub1 <- tp(e1, a -> t, sub)
-            sub2 <- tp(e2, a, sub1)
+            sub1 <- unify(e.tpe, a -> exp.tpe, sub)
+            sub2 <- ((x, TypeScheme(Nil, a)) :: env).tp(exp, sub1)
           } yield sub2
 
-        case Let(x, e1, e2) =>
-          val a = newTypeVar
+        case App(e1, e2, _) =>
           for {
-            sub1 <- tp(e1, a, sub)
-            sub2 <- ((x, gen(sub1(a))) :: env).tp(e2, t, sub1)
+            sub1 <- unify(e2.tpe -> e.tpe, e1.tpe, sub)
+            sub2 <- tp(e1, sub1)
+            sub3 <- tp(e2, sub2)
+          } yield sub3
+
+        case Let(x, e1, e2, _) =>
+          for {
+            sub1 <- unify(e.tpe, e2.tpe, sub)
+            sub2 <- ((x, gen(sub1(e1.tpe))) :: env).tp(e2, sub1)
           } yield sub2
+
+        case _ => sub.asRight
       }
     }
 
-    def typeOf(e: AST): ErrorOr[Type] = {
-      val a = newTypeVar
-      tp(e, a, Substitute.empty).map(_(a))
+//    def typeOf(ast: AST): ErrorOr[Type] = {
+//      val a = newTypeVar
+//      tp(ast, a, Substitute.empty).map(_(a))
+//    }
+
+    def infer(expr: Expr[Untyped]): ErrorOr[Expr[Typed]] = {
+      val typed = expr.withTypeVar
+      println(typed)
+      tp(typed, Substitute.empty) map { sub =>
+        println(sub)
+        def resolve(expr: Expr[Typed]): Expr[Typed] = expr match {
+          case Lam(x, exp, Typed(tpe))     => Lam(x, exp, Typed(sub(tpe)))
+          case App(f, e, Typed(tpe))       => App(f, e, Typed(sub(tpe)))
+          case Let(bind, e, f, Typed(tpe)) => Let(bind, e, f, Typed(sub(tpe)))
+          case Ident(name, Typed(tpe))     => Ident(name, Typed(sub(tpe)))
+          case lit                         => lit
+        }
+        resolve(typed)
+      }
+    }
+
+  }
+
+  implicit class UntypedExprOps(expr: Expr[Untyped]) {
+
+    def withTypeVar: Expr[Typed] = expr match {
+      case Ident(x, _)    => Ident(x, Typed(newTypeVar))
+      case Lam(x, exp, _) => Lam(x, exp.withTypeVar, Typed(newTypeVar))
+      case App(e1, e2, _) =>
+        App(e1.withTypeVar, e2.withTypeVar, Typed(newTypeVar))
+      case Let(x, e1, e2, _) =>
+        Let(x, e1.withTypeVar, e2.withTypeVar, Typed(newTypeVar))
+      case lit @ IntLit(_) => lit
+      case lit @ TrueLit   => lit
+      case lit @ FalseLit  => lit
     }
 
   }
@@ -127,6 +155,9 @@ private class Typer { self =>
 }
 object Typer {
 
-  def typeOf(exp: AST): ErrorOr[Type] = new Typer().typeOf(exp)
+//  def typeOf(exp: AST): ErrorOr[Type] = new Typer().typeOf(exp)
+
+  def infer(expr: Expr[Untyped]): ErrorOr[Expr[Typed]] =
+    new Typer().infer(expr)
 
 }

@@ -1,5 +1,7 @@
 package me.jooohn.hellocompiler.inference
-import Type._
+
+import me.jooohn.hellocompiler.Type
+import me.jooohn.hellocompiler.Type.{TypeCons, TypeVar, ->}
 
 case class Substitute(extended: Map[TypeVar, Type]) {
 

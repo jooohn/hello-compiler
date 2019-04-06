@@ -1,14 +1,15 @@
 package me.jooohn.hellocompiler.inference
 
+import me.jooohn.hellocompiler.Type
 import org.scalatest.{FunSpec, Matchers}
 
 class TyperSpec extends FunSpec with Matchers {
-  import me.jooohn.hellocompiler.untyped.AST._
+  import me.jooohn.hellocompiler.AST._
 
   describe("typeOf") {
 
     it("should inferable") {
-      val result = Typer.typeOf(
+      val result = Typer.infer(
         App(
           Lam(
             "x",
@@ -18,7 +19,7 @@ class TyperSpec extends FunSpec with Matchers {
             App(
               App(
                 Ident("if"),
-                Ident("true"),
+                TrueLit,
               ),
               Ident("zero"),
             ),
@@ -29,11 +30,13 @@ class TyperSpec extends FunSpec with Matchers {
           ),
         )
       )
-      result should be(Right(Type.int))
+      println(result)
+      result.map(_.tpe) should be(Right(Type.int))
     }
 
     it("should not inferable") {
-      Typer.typeOf(Ident("undefined")) should be(Left(TypeError("undefined: undefined")))
+      Typer.infer(Ident("undefined")) should be(
+        Left(TypeError("undefined: undefined")))
     }
 
   }
