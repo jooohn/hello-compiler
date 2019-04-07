@@ -24,12 +24,12 @@ class TyperSpec extends FunSpec with Matchers {
                   Ident("if"),
                   TrueLit,
                 ),
-                Ident("zero"),
+                App(
+                  Ident("identity"),
+                  Ident("zero"),
+                ),
               ),
-              App(
-                Ident("succ"),
-                Ident("zero"),
-              )
+              IntLit(123),
             ),
           )
         )
@@ -58,7 +58,7 @@ class TyperSpec extends FunSpec with Matchers {
         go(f, indent + 1)
         go(e, indent + 1)
       case Let(bind, e, f, Typed(tpe)) =>
-        println("  " * indent + s"let ${bind} =")
+        println("  " * indent + s"let ${bind}: ${e.tpe} =")
         go(e, indent + 1)
         println("  " * indent + s"in: $tpe")
         go(f, indent + 1)

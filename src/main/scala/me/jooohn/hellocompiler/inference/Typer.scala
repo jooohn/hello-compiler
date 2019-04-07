@@ -81,7 +81,7 @@ private class Typer { self =>
       t,
     )
 
-    def tp(e: Expr[Typed], sub: Substitute): ErrorOr[Substitute] = {
+    def tp(e: Expr[Typed], sub: Substitute): ErrorOr[Substitute] =
       e match {
         case Ident(x, _) =>
           for {
@@ -98,9 +98,9 @@ private class Typer { self =>
 
         case App(e1, e2, _) =>
           for {
-            sub1 <- unify(e2.tpe -> e.tpe, e1.tpe, sub)
-            sub2 <- tp(e1, sub1)
-            sub3 <- tp(e2, sub2)
+            sub1 <- tp(e1, sub)
+            sub2 <- tp(e2, sub1)
+            sub3 <- unify(e2.tpe -> e.tpe, e1.tpe, sub2)
           } yield sub3
 
         case Let(x, e1, e2, _) =>
@@ -112,7 +112,6 @@ private class Typer { self =>
 
         case _ => sub.asRight
       }
-    }
 
 //    def typeOf(ast: AST): ErrorOr[Type] = {
 //      val a = newTypeVar
@@ -121,15 +120,15 @@ private class Typer { self =>
 
     def infer(expr: Expr[Untyped]): ErrorOr[Expr[Typed]] = {
       val typed = expr.withTypeVar
-      println(typed)
       tp(typed, Substitute.empty) map { sub =>
-        println(sub)
         def resolve(expr: Expr[Typed]): Expr[Typed] = expr match {
-          case Lam(x, exp, Typed(tpe))     => Lam(x, exp, Typed(sub(tpe)))
-          case App(f, e, Typed(tpe))       => App(f, e, Typed(sub(tpe)))
-          case Let(bind, e, f, Typed(tpe)) => Let(bind, e, f, Typed(sub(tpe)))
-          case Ident(name, Typed(tpe))     => Ident(name, Typed(sub(tpe)))
-          case lit                         => lit
+          case Lam(x, exp, Typed(tpe)) => Lam(x, resolve(exp), Typed(sub(tpe)))
+          case App(f, e, Typed(tpe)) =>
+            App(resolve(f), resolve(e), Typed(sub(tpe)))
+          case Let(bind, e, f, Typed(tpe)) =>
+            Let(bind, resolve(e), resolve(f), Typed(sub(tpe)))
+          case Ident(name, Typed(tpe)) => Ident(name, Typed(sub(tpe)))
+          case lit                     => lit
         }
         resolve(typed)
       }

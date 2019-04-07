@@ -21,7 +21,13 @@ object Type {
 
   }
   case class TypeVar(id: String) extends Type
-  case class TypeCons(k: String, ts: List[Type]) extends Type
+  case class TypeCons(k: String, ts: List[Type]) extends Type {
+
+    override def toString: String =
+      if (ts.isEmpty) k
+      else s"${k}[${ts.mkString(",")}]"
+
+  }
 
   val int: TypeCons = TypeCons("Int", Nil)
   val bool: TypeCons = TypeCons("Bool", Nil)
