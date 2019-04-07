@@ -9,8 +9,6 @@ private class Typer { self =>
 
   type Env = List[(String, TypeScheme)]
 
-//  def typeOf(e: AST): ErrorOr[Type] = predef.typeOf(e)
-
   def infer(expr: Expr[Untyped]): ErrorOr[Expr[Typed]] =
     predef.infer(expr)
 
@@ -113,11 +111,6 @@ private class Typer { self =>
         case _ => sub.asRight
       }
 
-//    def typeOf(ast: AST): ErrorOr[Type] = {
-//      val a = newTypeVar
-//      tp(ast, a, Substitute.empty).map(_(a))
-//    }
-
     def infer(expr: Expr[Untyped]): ErrorOr[Expr[Typed]] = {
       val typed = expr.withTypeVar
       tp(typed, Substitute.empty) map { sub =>
@@ -154,8 +147,6 @@ private class Typer { self =>
 
 }
 object Typer {
-
-//  def typeOf(exp: AST): ErrorOr[Type] = new Typer().typeOf(exp)
 
   def infer(expr: Expr[Untyped]): ErrorOr[Expr[Typed]] =
     new Typer().infer(expr)
