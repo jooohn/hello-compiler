@@ -105,9 +105,10 @@ private class Typer { self =>
 
         case Let(x, e1, e2, _) =>
           for {
-            sub1 <- unify(e.tpe, e2.tpe, sub)
-            sub2 <- ((x, gen(sub1(e1.tpe))) :: env).tp(e2, sub1)
-          } yield sub2
+            sub1 <- tp(e1, sub)
+            sub2 <- unify(e.tpe, e2.tpe, sub1)
+            sub3 <- ((x, gen(sub1(e1.tpe))) :: env).tp(e2, sub2)
+          } yield sub3
 
         case _ => sub.asRight
       }
