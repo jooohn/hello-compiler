@@ -22,7 +22,10 @@ class TyperSpec extends FunSpec with Matchers {
               App(
                 App(
                   Ident("if"),
-                  TrueLit,
+                  App(
+                    Ident("identity"),
+                    TrueLit,
+                  )
                 ),
                 App(
                   Ident("identity"),
@@ -34,7 +37,7 @@ class TyperSpec extends FunSpec with Matchers {
           )
         )
       )
-      printExpr(result.right.get)
+      result.foreach(printExpr)
       result.map(_.tpe) should be(Right(Type.int))
     }
 
