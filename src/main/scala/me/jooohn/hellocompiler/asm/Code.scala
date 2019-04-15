@@ -15,6 +15,8 @@ object Code {
     case class Add(reg: Reg, value: Value) extends Instruction
     case class Sub(reg: Reg, value: Value) extends Instruction
     case class Mov(reg: Reg, value: Value) extends Instruction
+    case class Push(value: Value) extends Instruction
+    case class Pop(reg: Reg) extends Instruction
     case class Call(label: Label) extends Instruction
     case object Ret extends Instruction
   }
@@ -27,6 +29,7 @@ object Code {
 
     case object RAX extends Reg
     case object RSI extends Reg
+    case object RSP extends Reg
     case object RDI extends Reg
     case object RBP extends Reg
 

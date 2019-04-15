@@ -19,7 +19,7 @@ case class Runtime(program: Program, hint: Hint) {
 
   def run: ErrorOr[Int] = {
     def go(state: State): ErrorOr[Int] = {
-      if (state.isCompleted) state.rax
+      if (state.pc == Pos(program.size)) state.rax
       else
         (for {
           code <- codeAt(state.pc)
@@ -40,7 +40,10 @@ case class Runtime(program: Program, hint: Hint) {
       State(
         pc = mainPos,
         stack = Nil,
-        register = Register.empty,
+        register = Register.empty.updated(
+          Reg.RBP,
+          program.size
+        ),
         isCompleted = false
       )
     }
@@ -50,6 +53,16 @@ case class Runtime(program: Program, hint: Hint) {
 
   def execute(state: State, instruction: Instruction): ErrorOr[State] =
     instruction match {
+
+      case Push(src) =>
+        for {
+          value <- state.extractValue(src)
+        } yield state.push(value)
+
+      case Pop(reg) =>
+        for {
+          tup <- state.pop.toRight(RuntimeError("Failed to pop"))
+        } yield tup._1.updated(reg)(tup._2)
 
       case Mov(dest, src) =>
         state.extractValue(src).map(state.updated(dest))
@@ -76,10 +89,8 @@ case class Runtime(program: Program, hint: Hint) {
 
       // TODO: support subroutine call
       case Ret =>
-        Right(state.pop match {
-          case (s, Some(value)) => s.jump(Pos(value))
-          case (s, None) =>
-            s.completed
+        Right(state.pop.fold(state.completed: State) { case (next, v) =>
+          next.jump(Pos(v))
         })
     }
 
@@ -114,19 +125,28 @@ object Hint {
 }
 
 case class State(
-    pc: Pos,
-    stack: List[Int],
-    register: Register,
-    isCompleted: Boolean,
+  pc: Pos,
+  stack: List[Int],
+  register: Register,
+  isCompleted: Boolean,
 ) {
 
   def step: State = copy(pc = pc.next)
 
-  def push(value: Int): State = copy(stack = value :: stack)
+  def push(value: Int): State = copy(
+    stack = value :: stack.takeRight(rsp),
+    register = register.increaseRSP,
+  )
 
-  def pop: (State, Option[Int]) = stack match {
-    case head :: tail => (copy(stack = tail), Some(head))
-    case _            => (this, None)
+  def pop: Option[(State, Int)] = stack match {
+    case head :: tail =>
+      Some(
+        (copy(
+          stack = tail.takeRight(rsp - 1),
+          register = register.decreaseRSP
+        ),
+          head))
+    case _ => None
   }
 
   def jump(pos: Pos): State = copy(pc = pos)
@@ -142,6 +162,8 @@ case class State(
     register.valueOf(reg).toRight(RuntimeError(s"no value stored in ${reg}"))
 
   def rax: ErrorOr[Int] = valueOf(Reg.RAX)
+
+  def rsp: Int = register.rsp
 
   def updated(reg: Reg)(value: Int): State =
     copy(register = register.updated(reg, value))
@@ -161,9 +183,17 @@ case class Register(valueMap: Map[Reg, Int]) {
   def updated(reg: Reg, value: Int): Register =
     copy(valueMap.updated(reg, value))
 
+  def increaseRSP: Register = updated(Reg.RSP, rsp + 1)
+  def decreaseRSP: Register = updated(Reg.RSP, rsp - 1)
+
+  def rsp: Int = valueMap(Reg.RSP)
+
 }
 object Register {
 
-  val empty: Register = Register(Map.empty)
+  val empty: Register = Register(
+    Map(
+      Reg.RSP -> 0
+    ))
 
 }

@@ -1,3 +1,5 @@
 package me.jooohn.hellocompiler
 
-abstract class CompileError(message: String)
+abstract class CompileError {
+  def message: String
+}
